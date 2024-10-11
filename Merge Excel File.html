@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge Excel Files</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .inputcontainer, .filetable {
+            flex: 1;
+            margin-right: 20px;
+        }
+        .inputcontainer {
+             padding: 15px;
+             border: 1px solid black;
+             max-width: min-content;
+             margin-right: 20px;
+        }
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+        input[type="checkbox"], label {
+            margin: 5px;
+            display: block;
+        }
+        input[type="number"] {
+            width: 100px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        table {
+           font-size: smaller;
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tfoot {
+            font-weight: bold;
+        }
+        #downloadLink {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: white;
+            background-color: #28a745;
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+        #downloadLink:hover {
+            background-color: #218838;
+        }
+.options{
+display:flex;
+}
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="inputcontainer">
+
+        <h1>Upload Excel Files to Merge</h1>
+
+        <label for="fileInput">Choose Excel Files:</label>
+        <input type="file" id="fileInput" multiple onchange="displayFileDetails()">
+        <br>
+        
+<div>
+<div class="options">
+        <!-- Option to keep the header -->
+        <input type="checkbox" id="keepHeader" checked>
+        <label for="keepHeader">Keep first row header</label>
+</div>
+
+
+<div class="options">
+        <!-- Option to trim cells -->
+        <input type="checkbox" id="trimCells" checked>
+        <label for="trimCells">Trim all cells</label>
+</div>
+
+<div class="options">
+        <!-- Option to add filename column -->
+        <input type="checkbox" id="addFilenameColumn" checked>
+        <label for="addFilenameColumn">Generate column as filename</label>
+</div>
+
+<div class="options">
+        <!-- Input fields to remove rows and columns -->
+        <label for="removeFirstRows">Remove first N rows:</label>
+        <input type="number" id="removeFirstRows" min="0" value="0">
+</div>
+
+<div class="options">
+        <label for="removeLastRows">Remove last N rows:</label>
+        <input type="number" id="removeLastRows" min="0" value="0">
+</div>
+
+<div class="options">
+        <label for="removeFirstCols">Remove first N columns:</label>
+        <input type="number" id="removeFirstCols" min="0" value="0">
+</div>
+
+<div class="options">
+        <label for="removeLastCols">Remove last N columns:</label>
+        <input type="number" id="removeLastCols" min="0" value="0">
+</div>
+
+</div>
+        <button onclick="mergeFiles()">Merge Files</button>
+        <a id="downloadLink" style="display: none;">Download Merged File</a>
+
+    </div>
+
+    <div class="filetable">
+        <!-- Table to display file details -->
+        <h2>Selected File Details</h2>
+        <table id="fileDetailsTable" border="1">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>File Size (KB)</th>
+                    <th>Total Columns</th>
+                    <th>Total Rows</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- File details will be dynamically added here -->
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>Grand Total:</th>
+                    <th id="grandTotalFileSize">0 KB</th>
+                    <th id="grandTotalColumns">0</th>
+                    <th id="grandTotalRows">0</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+function displayFileDetails() {
+    const fileInput = document.getElementById('fileInput');
+    const files = fileInput.files;
+    const tableBody = document.querySelector('#fileDetailsTable tbody');
+    const grandTotalColumnsElement = document.getElementById('grandTotalColumns');
+    const grandTotalRowsElement = document.getElementById('grandTotalRows');
+    const grandTotalFileSizeElement = document.getElementById('grandTotalFileSize');
+    
+    // Clear previous file details and grand totals
+    tableBody.innerHTML = '';
+    let grandTotalRows = 0;
+    let grandTotalColumns = 0;
+    let grandTotalFileSize = 0;  // New variable to track total file size
+
+    if (!files.length) {
+        alert('Please select at least one file.');
+        return;
+    }
+
+    // Iterate over each file to display its details
+    Array.from(files).forEach((file) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            // Assuming we're working with the first sheet
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            const totalRows = sheetData.length;           // Total rows
+
+            // Find the maximum number of columns across all rows
+            let totalColumns = 0;
+            sheetData.forEach(row => {
+                totalColumns = Math.max(totalColumns, row.length);
+            });
+
+            grandTotalRows += totalRows;           // Add to grand total rows
+            grandTotalColumns += totalColumns;     // Add to grand total columns
+            grandTotalFileSize += file.size / 1024;  // Add file size to grand total
+
+            // Create a new row for the table
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${file.name}</td>
+                <td>${(file.size / 1024).toFixed(2)} KB</td>
+                <td>${totalColumns}</td>
+                <td>${totalRows}</td>
+            `;
+            tableBody.appendChild(newRow);
+
+            // Update the grand total display
+            grandTotalColumnsElement.textContent = grandTotalColumns;
+            grandTotalRowsElement.textContent = grandTotalRows;
+            grandTotalFileSizeElement.textContent = `${grandTotalFileSize.toFixed(2)} KB`;
+        };
+
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function mergeFiles() {
+    const fileInput = document.getElementById('fileInput');
+    const files = fileInput.files;
+    const keepHeader = document.getElementById('keepHeader').checked;  // Check if the header should be kept
+    const trimCells = document.getElementById('trimCells').checked;  // Check if cells should be trimmed
+    const addFilenameColumn = document.getElementById('addFilenameColumn').checked;  // Check if filename column should be added
+    const removeFirstRows = parseInt(document.getElementById('removeFirstRows').value, 10);
+    const removeLastRows = parseInt(document.getElementById('removeLastRows').value, 10);
+    const removeFirstCols = parseInt(document.getElementById('removeFirstCols').value, 10);
+    const removeLastCols = parseInt(document.getElementById('removeLastCols').value, 10);
+
+    if (!files.length) {
+        alert('Please select at least one file.');
+        return;
+    }
+
+    const mergedData = [];
+    const fileReadPromises = [];
+
+    // Read each file
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileReadPromise = new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                // Assuming the first sheet from each file is merged
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                let sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // Remove rows based on user input
+                if (removeFirstRows > 0) {
+                    sheetData = sheetData.slice(removeFirstRows);  // Remove the first N rows
+                }
+                if (removeLastRows > 0) {
+                    sheetData = sheetData.slice(0, sheetData.length - removeLastRows);  // Remove the last N rows
+                }
+
+                // Remove columns based on user input
+                sheetData = sheetData.map(row => {
+                    if (removeFirstCols > 0) {
+                        row = row.slice(removeFirstCols);  // Remove the first N columns
+                    }
+                    if (removeLastCols > 0) {
+                        row = row.slice(0, row.length - removeLastCols);  // Remove the last N columns
+                    }
+                    
+                    // Trim cells if the checkbox is checked
+                    if (trimCells) {
+                        return row.map(cell => (typeof cell === 'string' ? cell.trim() : cell));
+                    }
+                    return row;
+                });
+
+                // If the addFilenameColumn checkbox is checked, prepend the filename to each row
+                if (addFilenameColumn) {
+                    const filenameWithoutExtension = file.name.split('.').slice(0, -1).join('.');
+                    sheetData = sheetData.map((row, index) => {
+                        if (index === 0) {
+                            return ['Filename', ...row];  // Set "Filename" as the first cell of the first row
+                        }
+                        return [filenameWithoutExtension, ...row];  // Add filename as the first column for other rows
+                    });
+                }
+
+                // Handle whether to keep or remove the first row (header)
+                if (i === 0 && keepHeader) {
+                    mergedData.push(...sheetData);  // For the first file, keep the header
+                } else {
+                    mergedData.push(...sheetData.slice(keepHeader ? 1 : 0)); // Skip or include the header for subsequent files
+                }
+
+                resolve();
+            };
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+
+        fileReadPromises.push(fileReadPromise);
+    }
+
+    // Once all files are read, merge and download the new file
+    Promise.all(fileReadPromises).then(() => {
+        const newWorkbook = XLSX.utils.book_new();
+        const newWorksheet = XLSX.utils.aoa_to_sheet(mergedData);
+        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'MergedSheet');
+
+        const wbout = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/octet-stream' });
+        
+        // Download the merged file
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = 'merged_file.xlsx';
+        downloadLink.style.display = 'block';
+        downloadLink.click();
+    }).catch(error => {
+        console.error("Error reading files:", error);
+    });
+}
+
+</script>
+</body>
+</html>
