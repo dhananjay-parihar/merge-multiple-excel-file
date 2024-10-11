@@ -4,60 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merge Excel Files</title>
-    <style>
+  <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'Arial', sans-serif;
+            background-color: #e9ecef;
             margin: 0;
             padding: 20px;
+            color: #343a40;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
         }
         .container {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 1fr 2fr; /* Two-column layout */
+            gap: 20px;
             max-width: 1200px;
             margin: auto;
             background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             padding: 20px;
         }
         h1, h2 {
-            color: #333;
+            color: #007bff;
+            text-align: center; /* Center the headings */
         }
         .inputcontainer, .filetable {
-            flex: 1;
-            margin-right: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-        .inputcontainer {
-             padding: 15px;
-             border: 1px solid black;
-             max-width: min-content;
-             margin-right: 20px;
-        }
-        input[type="file"] {
-            margin-bottom: 10px;
+        input[type="file"], input[type="number"], button {
+            width: 100%; /* Full-width inputs and button */
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
         }
         input[type="checkbox"], label {
-            margin: 5px;
-            display: block;
-        }
-        input[type="number"] {
-            width: 100px;
-            margin-bottom: 10px;
+            margin: 5px 0;
         }
         button {
-            padding: 10px 15px;
             background-color: #007bff;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.3s;
         }
         button:hover {
             background-color: #0056b3;
         }
         table {
-           font-size: smaller;
+            font-size: smaller;
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
@@ -82,17 +81,32 @@
             background-color: #28a745;
             padding: 10px 15px;
             border-radius: 5px;
+            width: 100%; /* Full width for the download button */
+            text-align: center;
         }
         #downloadLink:hover {
             background-color: #218838;
         }
-.options{
-display:flex;
-}
+        .options {
+            display: flex;
+            flex-wrap: wrap; /* Allow options to wrap */
+            justify-content: space-between; /* Space between options */
+        }
+        .options > div {
+            flex: 1 1 45%; /* Allow options to take up space */
+            margin-bottom: 10px; /* Spacing between options */
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr; /* Stack columns on small screens */
+            }
+            .options > div {
+                flex: 1 1 100%; /* Full width on small screens */
+            }
+        }
     </style>
 </head>
 <body>
-
 <div class="container">
 
     <div class="inputcontainer">
@@ -101,59 +115,49 @@ display:flex;
 
         <label for="fileInput">Choose Excel Files:</label>
         <input type="file" id="fileInput" multiple onchange="displayFileDetails()">
-        <br>
         
-<div>
-<div class="options">
-        <!-- Option to keep the header -->
-        <input type="checkbox" id="keepHeader" checked>
-        <label for="keepHeader">Keep first row header</label>
-</div>
+        <div class="options">
+            <div>
+                <input type="checkbox" id="keepHeader" checked>
+                <label for="keepHeader">Keep first row header</label>
+            </div>
+            <div>
+                <input type="checkbox" id="trimCells" checked>
+                <label for="trimCells">Trim all cells</label>
+            </div>
+            <div>
+                <input type="checkbox" id="addFilenameColumn" checked>
+                <label for="addFilenameColumn">Generate column as filename</label>
+            </div>
+        </div>
 
+        <div class="options">
+            <div>
+                <label for="removeFirstRows">Remove first N rows:</label>
+                <input type="number" id="removeFirstRows" min="0" value="0">
+            </div>
+            <div>
+                <label for="removeLastRows">Remove last N rows:</label>
+                <input type="number" id="removeLastRows" min="0" value="0">
+            </div>
+            <div>
+                <label for="removeFirstCols">Remove first N columns:</label>
+                <input type="number" id="removeFirstCols" min="0" value="0">
+            </div>
+            <div>
+                <label for="removeLastCols">Remove last N columns:</label>
+                <input type="number" id="removeLastCols" min="0" value="0">
+            </div>
+        </div>
 
-<div class="options">
-        <!-- Option to trim cells -->
-        <input type="checkbox" id="trimCells" checked>
-        <label for="trimCells">Trim all cells</label>
-</div>
-
-<div class="options">
-        <!-- Option to add filename column -->
-        <input type="checkbox" id="addFilenameColumn" checked>
-        <label for="addFilenameColumn">Generate column as filename</label>
-</div>
-
-<div class="options">
-        <!-- Input fields to remove rows and columns -->
-        <label for="removeFirstRows">Remove first N rows:</label>
-        <input type="number" id="removeFirstRows" min="0" value="0">
-</div>
-
-<div class="options">
-        <label for="removeLastRows">Remove last N rows:</label>
-        <input type="number" id="removeLastRows" min="0" value="0">
-</div>
-
-<div class="options">
-        <label for="removeFirstCols">Remove first N columns:</label>
-        <input type="number" id="removeFirstCols" min="0" value="0">
-</div>
-
-<div class="options">
-        <label for="removeLastCols">Remove last N columns:</label>
-        <input type="number" id="removeLastCols" min="0" value="0">
-</div>
-
-</div>
         <button onclick="mergeFiles()">Merge Files</button>
         <a id="downloadLink" style="display: none;">Download Merged File</a>
 
     </div>
 
     <div class="filetable">
-        <!-- Table to display file details -->
         <h2>Selected File Details</h2>
-        <table id="fileDetailsTable" border="1">
+        <table id="fileDetailsTable">
             <thead>
                 <tr>
                     <th>Filename</th>
@@ -177,7 +181,6 @@ display:flex;
     </div>
 
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 function displayFileDetails() {
